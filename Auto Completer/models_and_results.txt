@@ -1,0 +1,89 @@
+model.load_weights('03102024Final1.h5')
+model2.load_weights('03102024Final1_2.h5')
+model3.load_weights('03102024Final2.h5')
+model4.load_weights('03102024Final2_2.h5')
+model5.load_weights('03102024Final3.h5')
+model6.load_weights('03102024Final3_2.h5')
+inputs="al"
+prediction(model,inputs)  # epochs=300, batch_size=32
+prediction(model2,inputs) # epochs=1000, batch_size=32
+prediction(model3,inputs) # epochs=300, batch_size=16
+prediction(model4,inputs) # epochs=1000, batch_size=16
+prediction(model5,inputs) # epochs=300, batch_size=64
+prediction(model6,inputs) # epochs=1000, batch_size=64
+
+1/1 [==============================] - 0s 56ms/step
+Word: athletes, Softmax: 1.22%
+Word: academics, Softmax: 1.01%
+Word: academic, Softmax: 0.96%
+Word: athletic, Softmax: 0.95%
+Word: acknowledge, Softmax: 0.87%
+1/1 [==============================] - 0s 71ms/step
+Word: alternatives, Softmax: 3.33%
+Word: allah, Softmax: 2.77%
+Word: alternatively, Softmax: 2.70%
+Word: algorithms, Softmax: 2.52%
+Word: allowing, Softmax: 2.37%
+1/1 [==============================] - 0s 47ms/step
+Word: allow, Softmax: 2.69%
+Word: colorado, Softmax: 2.52%
+Word: collaboration, Softmax: 2.39%
+Word: titled, Softmax: 1.43%
+Word: titles, Softmax: 1.36%
+1/1 [==============================] - 0s 53ms/step
+Word: altered, Softmax: 5.39%
+Word: allowing, Softmax: 4.01%
+Word: alternatively, Softmax: 3.51%
+Word: algorithm, Softmax: 3.12%
+Word: alerts, Softmax: 2.84%
+1/1 [==============================] - 0s 32ms/step
+Word: altered, Softmax: 4.66%
+Word: almost, Softmax: 3.52%
+Word: alternatively, Softmax: 3.33%
+Word: alternative, Softmax: 3.31%
+Word: alexander, Softmax: 2.99%
+1/1 [==============================] - 0s 29ms/step
+Word: albany, Softmax: 4.04%
+Word: alto, Softmax: 3.45%
+Word: algeria, Softmax: 3.19%
+Word: albums, Softmax: 3.09%
+Word: allied, Softmax: 2.79%
+
+
+
+inputs="ca"
+model4.load_weights('03102024Final2_2.h5')
+prediction(model4,inputs) # epochs=1000, batch_size=16
+
+1/1 [==============================] - 0s 31ms/step
+Word: cabinet, Softmax: 4.75%
+Word: calm, Softmax: 1.99%
+Word: calculators, Softmax: 1.41%
+Word: candidate, Softmax: 1.33%
+Word: canal, Softmax: 1.06%
+
+
+
+
+inputs="aca"
+model4.load_weights('03102024Final2_2.h5')
+prediction(model4,inputs) # epochs=1000, batch_size=16
+1/1 [==============================] - 0s 46ms/step
+Word: academics, Softmax: 78.03%
+Word: academy, Softmax: 12.98%
+Word: academic, Softmax: 7.79%
+Word: accessed, Softmax: 0.33%
+Word: accommodations, Softmax: 0.07%
+
+
+
+
+inputs="cat"
+model4.load_weights('03102024Final2_2.h5')
+prediction(model4,inputs) # epochs=1000, batch_size=16
+1/1 [==============================] - 0s 49ms/step
+Word: catalyst, Softmax: 29.76%
+Word: catalogue, Softmax: 14.18%
+Word: catalog, Softmax: 9.83%
+Word: cathedral, Softmax: 8.88%
+Word: catalogs, Softmax: 4.84%
