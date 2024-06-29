@@ -1,0 +1,39 @@
+N3000_B16_U512_EP1000_EM256
+********************
+Number of samples: 3000
+Batch size: 16
+Number of hidden layers: 512
+Number of epochs: 1000
+Embedding dimension: 256
+********************
+Duration:5058.3691 seconds
+1. German Input: Ich finde es fantastisch .
+1. Correct English Translation: I think it is fantastic .
+1. Predicted English Translation:  i find it .
+2. German Input: Du bist fantastisch . 
+2. Correct English Translation: You are fantastic .
+2. Predicted English Translation:  you are good .
+3. German Input: Du bist sehr fair .
+3. Correct English Translation: You are very fair .
+3. Predicted English Translation:  you are thanks fair
+4. German Input: Sie rennt schnell .
+4. Correct English Translation: She runs fast .
+4. Predicted English Translation:  she runs .
+5. German Input: Ihr seid trocken .
+5. Correct English Translation: You are dry .
+5. Predicted English Translation:  you are dry .
+6. German Input: Ich liege hier .
+6. Correct English Translation: I am lying here .
+6. Predicted English Translation:  i am here .
+7. German Input: Er sprach leise .
+7. Correct English Translation: He spoke quietly .
+7. Predicted English Translation:  he spoke .
+8. German Input: Ich habe gewonnen .
+8. Correct English Translation: I won .
+8. Predicted English Translation:  i am won .
+9. German Input: Du hast gewonnen .
+9. Correct English Translation: You won .
+9. Predicted English Translation:  you lost won
+10. German Input: Du bist lustig .
+10. Correct English Translation: You are funny .
+10. Predicted English Translation:  you are fun .

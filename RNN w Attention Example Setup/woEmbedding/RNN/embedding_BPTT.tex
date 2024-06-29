@@ -1,0 +1,434 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{RNN}
+\author{HSK}
+\date{June 2024}
+\begin{document}
+\maketitle
+\section{Introduce}
+
+Formula 1 has to go to Appendix for RNN BPPT.
+
+\begin{eqnarray}
+\label{eqn:x}
+	x_t = x^o_t ~ E\\
+\label{eqn:h}
+	h_t = \Theta_h(W ~h_{t-1}~+~U~x_t ~+~b)\\
+\label{eqn:omega}
+        \Omega_t = V ~h_{t}~+~c \\
+\label{eqn:y_hat}
+        \hat{y}_t = \Theta_y(\Omega_t)\\
+\label{eqn:Loss}
+        L_t = -~y_t~ln(\hat{y}_t)
+\end{eqnarray}
+in \eqref{eqn:x}, we use embedding layer.
+$\Theta$'s represent all activation functions. In our example for analytics, $\Theta_h$ is tanh in \eqref{eqn:h}, while $\Theta_y$ is softmax in \eqref{eqn:y_hat}, which is usually used.
+
+\section{Through Time for Recurrent Neural Network}
+\subsection{Softmax}
+Softmax $\left(x_{t}\right)=S_{t}=\frac{e^{x_{t}}}{\sum e^{x_{k}}}$ for $t=1, \ldots, k$
+
+Since softmax is a $\mathbb{R}^{k} \rightarrow \mathbb{R}^{k}$ mapping function, most general Jacobian matrix for it:
+
+$$
+\frac{\partial S}{\partial x}=\left[\begin{array}{ccc}
+\frac{\partial S_{1}}{\partial x_{1}} & \cdots & \frac{\partial S_{1}}{\partial x_{k}} \\
+\vdots & & \\
+\frac{\partial S_{k}}{\partial x_{1}} & \cdots & \frac{\partial S_{k}}{\partial x_{k}}
+\end{array}\right]
+$$
+
+Let's compute $\frac{\partial S_{i}}{\partial x_{j}}$ for some arbitrary $i$ and $j$ :
+
+$$
+\frac{\partial S_{i}}{\partial x_{j}}=\frac{\partial}{\partial x_{j}} \frac{e^{x_{i}}}{\sum_{k} e^{x_{k}}}
+$$
+
+Let's examine the formula for division
+\begin{align*}
+f(x)&=\frac{g(x)}{h(x)}, \quad \\ f^{\prime}(x)&=\frac{g^{\prime}(x) h(x)-g(x) h^{\prime}(x)}{h(x)^{2}} 
+\end{align*}
+In our case $g_{i}=e^{x_{i}}$ and $h_{i}=\sum e^{x_{k}}$. No matter which $x_{j}$, when we com pute the derivative of $h_{i}$ with respect to $x_{j}$, the answer will always be $e^{x_{j}}$.
+
+$$
+\frac{\partial}{\partial x_{j}} h_{i}=\frac{\partial}{\partial x_{j}} \sum e^{x_{k}}=\sum \frac{\partial e^{x_{k}}}{\partial x_{j}}=e^{x_{j}}
+$$
+
+because $\frac{\partial e^{x_{k}}}{\partial x_{j}}=0$ for $k \neq j$. There are on the mean-fully derivatives for $i=j$ in $\frac{\partial S}{\partial x}$ matrices for our problem.
+
+
+\begin{align*}
+& \frac{\partial \frac{e^{x_{i}}}{\sum e^{x_{k}}}}{\partial x_{j}}=\frac{e^{x_{i}} \sum e^{x_{k}}-e^{x_{j}} e^{x_{i}}}{\left(\sum e^{x_{k}}\right)^{2}} \\
+& =\frac{e^{x_{i}}\left(\sum e^{x_{k}}-e^{x_{j}}\right)}{\left(\sum e^{x_{k}}\right)^{2}} \\
+& =\frac{e^{x_{i}}}{\sum e^{x_{k}}} \cdot\left(\frac{\sum e^{x_{k}}}{\sum e^{x_{k}}}-\frac{e^{x_{j}}}{\sum e^{x_{k}}}\right) \\
+\end{align*}
+
+\begin{equation}
+\label{eqn:partial_softmax}
+    S_{i}\left(1-S_{j}\right)
+\end{equation}
+
+Now we found what derivative of softmax. Let's go back to the loss function.
+\subsection{Derivative of Loss Function and $\Omega_t$}
+Let's examine the derivative formula for logarithm
+\begin{align*}
+    & f(x)=\log _{y} x \\
+& f^{\prime}(x)=\frac{x^{\prime}}{x} \cdot \log _{e} y\\
+\end{align*}
+\begin{align*}
+    L(\hat{y}, y) &=-\sum y_{t} \log \left(\operatorname{softmax}\left(\Omega_{t}\right)\right)\\
+    \frac{\partial L}{\partial \Omega_{t}} & =-\frac{\partial}{\partial \Omega_{t}} \sum y_{t} \log \left(\operatorname{softmax}\left(\Omega_{t}\right)\right) \\
+&=-\sum y_{t} \frac{\partial \log \left(\operatorname{softmax}\left(\Omega_{t}\right)\right)}{\partial \Omega_{t}}  \\
+& =-\sum \frac{\partial \hat{y}_t}{\partial \Omega_{t}} \cdot \frac{y_{t}}{\hat{y}_{t}} \\
+& =-\sum S_{t,i}\left(1-S_{t,j}\right) \cdot \frac{y_{t}}{\hat{y}_{t}} \\
+& =-\sum\left(1-S_{t,j}\right) y_{t} \\
+& =-\sum\left(y_{t}-S_{t,j} \hat{y}_{t}\right) \\
+& =\sum S_{t,i} \hat{y}_{t}-\sum y_{t} \\
+& =S_{t,j} \sum \hat{y}_{t}-\sum y_{t} \\
+& =\sum (\hat{y}_{t}-y_{t}) \\
+\end{align*}
+\begin{equation}
+\label{eqn:partial_omega}
+    \frac{\partial L_t}{\partial \hat{\Omega}_t} = (\hat{y}_{t}-y_{t})
+\end{equation}
+\subsection{Derivative of $V$}
+The weight V is consistent across the entire time sequence, allowing us to perform differentiation at each time step and then aggregate the results. 
+
+\begin{align*} 
+\frac{\partial L}{\partial V} &= \sum_{t=1}^{S} \frac{\partial L_{t}}{\partial V} \\
+&= \sum_{t=1}^{S} \frac{\partial L_{t}}{\partial \hat{y}_{t}} \frac{\partial \hat{y}_{t}}{\partial \Omega_{t}} \frac{\partial \Omega_{t}}{\partial V}\\
+&= \sum_{t=1}^{S} \frac{\partial L}{\partial \Omega_t}  \frac{\partial \Omega_{t}}{\partial V}
+\end{align*}
+
+We know that this formula $\frac{\partial \hat{y}_{t}}{\partial \Omega_{t}}$ from \eqref{eqn:partial_omega} and no other function exists between Omega and V, so simply taking the derivative coefficient of V yields h, thus the answer is h.
+
+\begin{equation}
+\label{eqn:partial_aV}
+=\sum_{t=1}^{S} (\hat{y}_{t} - y_{t}) \cdot h_{t}^\top
+\end{equation}
+\subsection{Derivative of $c$}
+Similar to V, but its derivative is easier to calculate since it stands alone in the function.
+
+\begin{align*}
+\frac{\partial L}{\partial c} &= \sum_{t=1}^{T} \frac{\partial L_t}{\partial c} \\
+&= \sum_{t=1}^{T} \frac{\partial L_{t}}{\partial \hat{y}_{t}} \frac{\partial \hat{y}_{t}}{\partial \Omega_{t}} \frac{\partial \Omega_{t}}{\partial c}\\
+ &= \sum_{t=1}^{T} \frac{\partial L}{\partial \Omega_t} \frac{\partial \Omega_{t}}{\partial c}
+\end{align*}
+In this case, The Analytical Derivatives of c becomes:
+\begin{equation}
+\label{eqn:partial_ac}
+   =\sum_{t=1}^{T} (\hat{y}_{t} - y_{t})
+\end{equation}
+\subsection{Derivative of $W$}
+This function employs recursion, therefore, computing its derivative may take some time.
+\begin{align*}
+	h_t &= tanh(W ~h_{t-1}~+~U~x_t ~+~b)\\
+	h_1 & = tanh(W ~h_{0}~+~U~x_1 ~+~b) ~~~ h_2 = tanh(W ~h_{1}~+~U~x_2 ~+~b)\\
+	h_3 &= tanh(W ~h_{2}~+~U~x_3 ~+~b)~~~h_4 = tanh(W ~h_{3}~+~U~x_4 ~+~b)\\
+\end{align*}
+By placing $h_t$ into the last term, we get:
+\begin{align*}
+	h_4 &= \\
+	& tanh(W ~tanh(W ~tanh(W ~tanh(W h_{0}+Ux_1 +b)+Ux_2 +b)+Ux_3 +b) +Ux_4 +b)
+\end{align*}
+We start from the first step go to the last step:
+\begin{align*}
+\frac{\partial L_1}{ \partial{W}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+ ~\frac{\partial h_1}{ \partial h_1} ~\frac{\partial h_1}{ \partial W} \\
+	\frac{\partial L_2}{ \partial{W}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} \\
+ \frac{\partial L_3}{ \partial{W}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_3} ~\frac{\partial h_3}{ \partial W} \\
+ \frac{\partial L_4}{ \partial{W}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial W} + ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_4} ~\frac{\partial h_4}{ \partial W}
+\end{align*}
+Simplifying:
+\begin{align*}
+\frac{\partial L_1}{ \partial{W}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+  ~\frac{\partial h_1}{ \partial W} \\
+	\frac{\partial L_2}{ \partial{W}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+  ~\frac{\partial h_2}{ \partial W} \\
+ \frac{\partial L_3}{ \partial{W}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+  ~\frac{\partial h_3}{ \partial W} \\
+ \frac{\partial L_4}{ \partial{W}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial W} + ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+  ~\frac{\partial h_4}{ \partial W}
+\end{align*}
+Since the calculation process needs to be simplified, let's expand $\frac{h_t}{h_k}$
+\begin{align*}
+\frac{\partial L_1}{ \partial{W}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+  ~\frac{\partial h_1}{ \partial W} \\
+	\frac{\partial L_2}{ \partial{W}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+  ~\frac{\partial h_2}{ \partial W} \\
+ \frac{\partial L_3}{ \partial{W}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+  ~\frac{\partial h_3}{ \partial W} \\
+ \frac{\partial L_4}{ \partial{W}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3}~\frac{\partial h_3}{ \partial h_2}~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial W}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial W} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial W} + ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+  ~\frac{\partial h_4}{ \partial W}
+\end{align*}
+Let us group them under a $\sum \prod$  for step $t$:
+\begin{align*}
+	\frac{\partial L_t}{ \partial{W}} & = \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial W}
+\end{align*}
+Let us now present the formula for $\mathcal{S}$ steps:
+\begin{equation}
+	\frac{\partial L}{ \partial{W}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial W}~
+	\bigg) 
+ \label{eqn:partial_L_W}
+\end{equation}
+Finally, we insert the individual partial derivatives to calculate our final gradients of L with respect to W, where:
+
+\begin{align*}
+        \frac{\partial L_t}{\partial \hat{y}_t} &= (y_t - \hat{y}_t)\\
+        \frac{\partial \hat{y}_t}{\partial h_t}
+        &= V^\top \\
+        ~\frac{\partial h_{j+1}}{\partial h_{j}}
+        &= W^\top ~ (1 - h_{j+1}^2) \\
+        ~\frac{\partial h_k}{\partial W}&= (1-h_k^2)~ h_{k-1}
+\end{align*}
+In this case, The Analytical Derivatives of Eq.~\eqref{eqn:partial_L_W} becomes:
+\begin{equation}
+	\frac{\partial L}{ \partial{W}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~(y_t - \hat{y}_t)
+	~V^\top
+        \prod_{j=k}^{t-1} \bigg(
+	~W^\top ~ (1 - h_{j+1}^2)
+        \bigg)
+	~(1-h_k^2)~ h_{k-1}~
+	\bigg) 
+ \label{eqn:partial_L_aW}
+\end{equation}
+\subsection{Derivative of $U$}
+Now, let's derive the gradient with respect to $U$. Similarly, we calculate the gradient with respect to $U$  like Eq. \eqref{eqn:partial_L_W}  as follows:
+
+\begin{equation}
+	\frac{\partial L}{ \partial{U}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial U}~
+	\bigg) 
+ \label{eqn:partial_L_U}
+\end{equation}
+we insert the individual partial derivatives to calculate our final gradients of L with respect to W, where:
+
+\begin{align*}
+        \frac{\partial L_t}{\partial \hat{y}_t} &= (y_t - \hat{y}_t)\\
+        \frac{\partial \hat{y}_t}{\partial h_t}
+        &= V^\top \\
+        ~\frac{\partial h_{j+1}}{\partial h_{j}}
+        &= W^\top ~ (1 - h_{j+1}^2) \\
+        ~\frac{\partial h_k}{\partial U}&= (1-h_k^2)~ x_{k}
+\end{align*}
+In this case, The Analytical Derivatives of Eq.~\eqref{eqn:partial_L_U} becomes:
+\begin{equation}
+	\frac{\partial L}{ \partial{W}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~(y_t - \hat{y}_t)
+	~V^\top
+        \prod_{j=k}^{t-1} \bigg(
+	~W^\top ~ (1 - h_{j+1}^2)
+        \bigg)
+	~(1-h_k^2)~ h_{k-1}~
+	\bigg) 
+ \label{eqn:partial_L_aU}
+\end{equation}
+
+\subsection{Derivative of $b$}
+Now, let's derive the gradient with respect to $b$. Similarly, we calculate the gradient with respect to $b$  like Eq. \eqref{eqn:partial_L_U}  as follows:
+
+\begin{equation}
+	\frac{\partial L}{ \partial{b}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial b}~
+	\bigg) 
+ \label{eqn:partial_L_b}
+\end{equation}
+we insert the individual partial derivatives to calculate our final gradients of L with respect to W, where:
+
+\begin{align*}
+        \frac{\partial L_t}{\partial \hat{y}_t} &= (y_t - \hat{y}_t)\\
+        \frac{\partial \hat{y}_t}{\partial h_t}
+        &= V^\top \\
+        ~\frac{\partial h_{j+1}}{\partial h_{j}}
+        &= W^\top ~ (1 - h_{j+1}^2) \\
+        ~\frac{\partial h_k}{\partial b}&= (1-h_k^2)
+\end{align*}
+In this case, The Analytical Derivatives of Eq.~\eqref{eqn:partial_L_b} becomes:
+\begin{equation}
+	\frac{\partial L}{ \partial{W}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~(y_t - \hat{y}_t)
+	~V^\top
+        \prod_{j=k}^{t-1} \bigg(
+	~W^\top ~ (1 - h_{j+1}^2)
+        \bigg)
+	~(1-h_k^2)~
+	\bigg) 
+ \label{eqn:partial_L_ab}
+\end{equation}
+
+\subsection{Derivative of $E$}
+
+ADD THIS ONE TO THE APPENDIX AS TH DIFFERENCE WHEN EMBEDDING LAYERS ARE USED
+
+This function employs recursion, therefore, computing its derivative may take some time.
+\begin{align*}
+        x_t &= x^o_t ~ E\\
+	h_t &= tanh(W ~h_{t-1}~+~U~x_t ~+~b)\\
+	h_1 & = tanh(W ~h_{0}~+~U~x_1 ~+~b) ~~~ h_2 = tanh(W ~h_{1}~+~U~x_2 ~+~b)\\
+	h_3 &= tanh(W ~h_{2}~+~U~x_3 ~+~b)~~~h_4 = tanh(W ~h_{3}~+~U~x_4 ~+~b)\\
+\end{align*}
+By placing $h_t$ into the last term, we get:
+\begin{align*}
+	h_4 &= \\
+	& tanh(W ~tanh(W ~tanh(W ~tanh(W h_{0}+Ux_1 +b)+Ux_2 +b)+Ux_3 +b) +Ux_4 +b)
+\end{align*}
+We start from the first step go to the last step:
+\begin{align*}
+\frac{\partial L_1}{ \partial{E}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+ ~\frac{\partial h_1}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}\\
+	\frac{\partial L_2}{ \partial{E}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} \\
+ \frac{\partial L_3}{ \partial{E}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_3} ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\
+ \frac{\partial L_4}{ \partial{W}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\ &~+ \frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_4} ~\frac{\partial h_4}{ \partial x_4} ~\frac{\partial x_4}{ \partial E}
+\end{align*}
+Simplifying:
+\begin{align*}
+\frac{\partial L_1}{ \partial{E}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+  ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E} \\
+	\frac{\partial L_2}{ \partial{E}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+  ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} \\
+ \frac{\partial L_3}{ \partial{E}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+  ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\
+ \frac{\partial L_4}{ \partial{E}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\&+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+  ~\frac{\partial h_4}{ \partial x_4} ~\frac{\partial x_4}{ \partial E}
+\end{align*}
+Since the calculation process needs to be simplified, let's expand $\frac{h_t}{h_k}$
+\begin{align*}
+\frac{\partial L_1}{ \partial{E}} & = ~\frac{\partial L_1}{ \partial \hat{y}_1}~\frac{\partial \hat{y}_1}{ \partial h_1}
+  ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E} \\
+	\frac{\partial L_2}{ \partial{E}} & = ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+ ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_2}{ \partial \hat{y}_2}~\frac{\partial \hat{y}_2}{ \partial h_2}
+  ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} \\
+ \frac{\partial L_3}{ \partial{E}} & = ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+ ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_3}{ \partial \hat{y}_3}~\frac{\partial \hat{y}_3}{ \partial h_3}
+  ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\
+ \frac{\partial L_4}{ \partial{E}} & = ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3}~\frac{\partial h_3}{ \partial h_2}~\frac{\partial h_2}{ \partial h_1} ~\frac{\partial h_1}{ \partial x_1} ~\frac{\partial x_1}{ \partial E}	+ ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial h_2} ~\frac{\partial h_2}{ \partial x_2} ~\frac{\partial x_2}{ \partial E} +  ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+ ~\frac{\partial h_4}{ \partial h_3} ~\frac{\partial h_3}{ \partial x_3} ~\frac{\partial x_3}{ \partial E} \\& + ~\frac{\partial L_4}{ \partial \hat{y}_4}~\frac{\partial \hat{y}_4}{ \partial h_4}
+  ~\frac{\partial h_4}{ \partial x_4} ~\frac{\partial x_4}{ \partial E}
+\end{align*}
+Let us group them under a $\sum \prod$  for step $t$:
+\begin{align*}
+	\frac{\partial L_t}{ \partial{E}} & = \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial x_k}~\frac{\partial x_k}{\partial E}
+\end{align*}
+Let us now present the formula for $\mathcal{S}$ steps:
+\begin{equation}
+	\frac{\partial L}{ \partial{E}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~\frac{\partial L_t}{\partial \hat{y}_t}
+	~\frac{\partial \hat{y}_t}{\partial h_t}
+        \prod_{j=k}^{t-1} \bigg(
+	~\frac{\partial h_{j+1}}{\partial h_{j}}
+        \bigg)
+	~\frac{\partial h_k}{\partial x_k}~\frac{\partial x_k}{\partial E}~
+	\bigg) 
+ \label{eqn:partial_L_E}
+\end{equation}
+Finally, we insert the individual partial derivatives to calculate our final gradients of L with respect to W, where:
+
+\begin{align*}
+        \frac{\partial L_t}{\partial \hat{y}_t} &= (y_t - \hat{y}_t)\\
+        \frac{\partial \hat{y}_t}{\partial h_t}
+        &= V^\top \\
+        ~\frac{\partial h_{j+1}}{\partial h_{j}}
+        &= W^\top ~ (1 - h_{j+1}^2) \\
+        ~\frac{\partial h_k}{\partial x_k}&= (1-h_k^2)~ U \\
+        ~\frac{\partial x_k}{\partial E}&= x^o_k
+\end{align*}
+In this case, The Analytical Derivatives of Eq.~\eqref{eqn:partial_L_E} becomes:
+\begin{equation}
+	\frac{\partial L}{ \partial{E}} = \sum_{t=1}^{\mathcal{S}} 
+	\bigg(	
+	 \sum_{k=1}^{t} ~
+	~(y_t - \hat{y}_t)
+	~V^\top
+        \prod_{j=k}^{t-1} \bigg(
+	~W^\top ~ (1 - h_{j+1}^2)
+        \bigg)
+	~(1-h_k^2)~ U~ x^o_k
+	\bigg) 
+ \label{eqn:partial_L_aE}
+\end{equation}
+\end{document}
